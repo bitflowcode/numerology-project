@@ -1,286 +1,222 @@
-# Numerology Server
+# Numerology API - Backend
 
-Secure Node.js/Express backend with Claude API integration for numerology interpretations.
+API REST para interpretaciones numerológicas con Claude AI.
 
-## Features
+## 🚀 Inicio rápido
 
-- Claude API integration for AI-powered numerology interpretations
-- Comprehensive input validation and sanitization
-- Rate limiting to prevent abuse
-- CORS protection with whitelist
-- Security headers via Helmet
-- Spanish language error messages
-- Environment-based configuration
-
-## Setup Instructions
-
-### 1. Install Dependencies
+### Desarrollo local
 
 ```bash
-cd server
+# Instalar dependencias
 npm install
+
+# Copiar variables de entorno
+cp .env.example .env
+
+# Editar .env con tu API key
+nano .env
+
+# Iniciar servidor de desarrollo
+npm run dev
 ```
 
-### 2. Get Claude API Key
+La API estará disponible en `http://localhost:3001`
 
-1. Go to [Anthropic Console](https://console.anthropic.com/)
-2. Sign up or log in
-3. Navigate to API Keys section
-4. Create a new API key
-5. Copy the key (starts with `sk-ant-`)
+---
 
-### 3. Configure Environment
+## 📁 Estructura
 
-Create a `.env` file based on `.env.example`:
+```
+server/
+├── config/           # Configuración (Anthropic, CORS)
+├── middleware/       # Validación, rate limiting, errores
+├── routes/          # Rutas de la API
+├── scripts/         # Scripts de utilidad (logs, restart, etc.)
+├── logs/            # Logs de PM2 (creado automáticamente)
+├── .env.example     # Plantilla de variables de entorno
+├── ecosystem.config.js  # Configuración de PM2
+└── index.js         # Punto de entrada
+```
+
+---
+
+## 🔑 Variables de entorno
+
+Crea un archivo `.env` con:
 
 ```bash
-cp .env.example .env
-```
+# API Key de Claude/Anthropic
+ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
 
-Edit `.env` and add your API key:
-
-```env
-ANTHROPIC_API_KEY=sk-ant-your-actual-key-here
+# Puerto del servidor
 PORT=3001
+
+# Entorno (development | production)
 NODE_ENV=development
+
+# URL del frontend (separar múltiples con comas)
 FRONTEND_URL=http://localhost:5173
+
+# Rate Limiting
 RATE_LIMIT_MAX=100
 RATE_LIMIT_WINDOW_MS=900000
 ```
 
-### 4. Start Server
+---
 
-Development mode (with auto-reload):
-```bash
-npm run dev
-```
-
-Production mode:
-```bash
-npm start
-```
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ANTHROPIC_API_KEY` | Your Claude API key (required) | - |
-| `PORT` | Server port | `3001` |
-| `NODE_ENV` | Environment mode | `development` |
-| `FRONTEND_URL` | Frontend origin for CORS | `http://localhost:5173` |
-| `RATE_LIMIT_MAX` | Max requests per window | `100` |
-| `RATE_LIMIT_WINDOW_MS` | Rate limit window in ms | `900000` (15 min) |
-
-## API Endpoints
+## 📡 Endpoints
 
 ### Health Check
+```bash
+GET /api/health
+```
 
-**GET** `/api/health`
-
-Check server status.
-
-**Response:**
+Responde con estado del servidor:
 ```json
 {
   "status": "ok",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "environment": "development"
+  "timestamp": "2024-01-20T10:00:00.000Z",
+  "environment": "production",
+  "uptime": 123.45,
+  "port": 3001
 }
 ```
 
-### Get Interpretation
+### Interpretación numerológica
+```bash
+POST /api/numerology/interpret
+```
 
-**POST** `/api/numerology/interpret`
-
-Get numerology interpretation from Claude.
-
-**Request Body:**
+Body:
 ```json
 {
   "tipo": "vida",
+  "numero": 7,
   "datos": {
-    "nombre": "Maria Garcia",
+    "nombre": "María García",
     "fechaNacimiento": "1990-05-15",
-    "detalles": "Día: 15→6, Mes: 5, Año: 1990→1"
+    "detalles": "Día: 15→6, Mes: 5→5, Año: 1990→1, Total: 6+5+1=12→3"
   },
-  "numero": 3,
   "esMaestro": false
 }
 ```
 
-**Valid tipos:**
-- `vida` - Número de Vida
-- `alma` - Número del Alma
-- `personalidad` - Número de Personalidad
-- `expresion` - Número de Expresión
-- `compatibilidad` - Compatibilidad Numerológica
-- `año` - Número de Año Personal
-- `maestros` - Número Maestro
-
-**Valid numeros:** 1-9, 11, 22, 33
-
-**Response:**
-```json
-{
-  "interpretation": "Tu número de vida 3...",
-  "numero": 3,
-  "esMaestro": false,
-  "tipo": "vida",
-  "metadata": {
-    "model": "claude-3-5-sonnet-20241022",
-    "usage": {
-      "input_tokens": 150,
-      "output_tokens": 300
-    }
-  }
-}
+### Chat
+```bash
+POST /api/numerology/chat
 ```
 
-### Chat
-
-**POST** `/api/numerology/chat`
-
-Chat with Claude about numerology.
-
-**Request Body:**
+Body:
 ```json
 {
   "mensaje": "¿Qué significa el número 7?",
-  "contexto": {
-    "numeroActual": 7,
-    "tipoActual": "vida"
-  }
+  "conversationHistory": [
+    { "role": "user", "content": "Hola" },
+    { "role": "assistant", "content": "Hola, ¿en qué puedo ayudarte?" }
+  ]
 }
 ```
 
-**Response:**
-```json
-{
-  "response": "El número 7 representa...",
-  "metadata": {
-    "model": "claude-3-5-sonnet-20241022",
-    "usage": {
-      "input_tokens": 100,
-      "output_tokens": 200
-    }
-  }
-}
-```
+---
 
-## Testing
+## 🛠️ Comandos
 
-### Using curl
-
-**Health check:**
+### Desarrollo
 ```bash
-curl http://localhost:3001/api/health
+npm run dev        # Iniciar con nodemon
 ```
 
-**Get interpretation:**
+### Producción con PM2
 ```bash
-curl -X POST http://localhost:3001/api/numerology/interpret \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tipo": "vida",
-    "datos": {
-      "nombre": "Maria Garcia",
-      "fechaNacimiento": "1990-05-15",
-      "detalles": "Día: 15→6, Mes: 5, Año: 1990→1"
-    },
-    "numero": 3,
-    "esMaestro": false
-  }'
+pm2 start ecosystem.config.js    # Iniciar
+pm2 restart numerology-api       # Reiniciar
+pm2 stop numerology-api          # Detener
+pm2 logs numerology-api          # Ver logs
+pm2 status                       # Ver estado
 ```
 
-**Chat:**
+### Scripts auxiliares
 ```bash
-curl -X POST http://localhost:3001/api/numerology/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "mensaje": "¿Qué significa el número 7?",
-    "contexto": {}
-  }'
+bash scripts/logs.sh      # Ver últimos 50 logs
+bash scripts/restart.sh   # Reiniciar app
+bash scripts/status.sh    # Ver estado y health check
+bash scripts/update.sh    # Actualizar después de cambios
 ```
 
-**Test rate limiting:**
+---
+
+## 🔒 Seguridad
+
+- ✅ Helmet.js para headers de seguridad
+- ✅ CORS con whitelist de orígenes
+- ✅ Rate limiting (100 req/15min por defecto)
+- ✅ Validación y sanitización de inputs
+- ✅ Límite de payload: 1MB
+
+---
+
+## 📝 Logs
+
+### Desarrollo
+Los logs se muestran en consola con colores.
+
+### Producción (PM2)
+Los logs se guardan en:
+- Error logs: `logs/err.log`
+- Output logs: `logs/out.log`
+- PM2 logs: `~/.pm2/logs/`
+
+Ver logs:
 ```bash
-# Run this 101 times to trigger rate limit
-for i in {1..101}; do
-  curl http://localhost:3001/api/health
-done
+pm2 logs numerology-api          # En tiempo real
+pm2 logs numerology-api --lines 50   # Últimas 50 líneas
 ```
 
-**Test invalid input:**
+---
+
+## 🐛 Troubleshooting
+
+### Error: "ANTHROPIC_API_KEY is not set"
+Verifica que el archivo `.env` existe y contiene la API key.
+
+### Error: "Port 3001 already in use"
 ```bash
-curl -X POST http://localhost:3001/api/numerology/interpret \
-  -H "Content-Type: application/json" \
-  -d '{"tipo": "invalid", "datos": {}, "numero": 99}'
+# Encontrar proceso usando el puerto
+lsof -i :3001
+
+# Matar proceso
+kill -9 <PID>
 ```
 
-## Security Features
-
-- **Environment Variables:** Sensitive data (API keys) never in code
-- **Input Validation:** All inputs validated and sanitized server-side
-- **Rate Limiting:** 100 requests per 15 minutes per IP
-- **CORS:** Whitelist-based origin validation
-- **Helmet:** Security headers to prevent common attacks
-- **Body Size Limits:** 10KB max request size
-- **Error Sanitization:** No internal details exposed to client
-- **Spanish Errors:** User-friendly error messages in Spanish
-
-## Security Checklist
-
-- [ ] `.env` file is NOT committed to git
-- [ ] API key is kept secret
-- [ ] Server validates API key on startup
-- [ ] CORS only allows your frontend origin
-- [ ] Rate limiting is enabled
-- [ ] All inputs are validated
-- [ ] Error messages don't expose internals
-
-## Troubleshooting
-
-**Server won't start - API key error:**
-- Make sure `.env` file exists
-- Verify `ANTHROPIC_API_KEY` is set correctly
-- Check for extra spaces or quotes around the key
-
-**CORS errors in browser:**
-- Verify `FRONTEND_URL` matches your frontend URL exactly
-- Check browser console for specific CORS error
-- Make sure frontend is running on allowed origin
-
-**Rate limit exceeded:**
-- Wait 15 minutes for rate limit to reset
-- Or adjust `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_MS` in `.env`
-
-**Claude API errors:**
-- Check API key is valid
-- Verify you have API credits
-- Check [Anthropic Status](https://status.anthropic.com/)
-
-## Architecture
-
-```
-server/
-├── config/
-│   ├── anthropic.js    # Claude API setup & prompts
-│   └── cors.js         # CORS configuration
-├── middleware/
-│   ├── errorHandler.js # Error handling
-│   ├── rateLimiter.js  # Rate limiting
-│   └── validateInput.js # Input validation
-├── routes/
-│   └── numerology.js   # API endpoints
-├── services/
-│   └── claudeService.js # Claude API integration
-├── .env.example        # Environment template
-├── .gitignore          # Git ignore rules
-├── index.js            # Server entry point
-├── package.json        # Dependencies
-└── README.md           # This file
+### Error 413: "Payload Too Large"
+El límite actual es 1MB. Si necesitas más, edita `index.js`:
+```javascript
+app.use(express.json({ limit: '2mb' }));
 ```
 
-## License
+### Errores de CORS
+Verifica que `FRONTEND_URL` en `.env` incluye el origen que hace la petición.
 
-ISC
+---
+
+## 📚 Deploy
+
+Ver documentación completa:
+- [Deploy en Hetzner](../DEPLOY_HETZNER.md)
+- [Deploy Frontend en Vercel](../DEPLOY_VERCEL.md)
+
+---
+
+## 🔗 Stack
+
+- **Runtime**: Node.js 20 LTS
+- **Framework**: Express.js
+- **AI**: Claude (Anthropic API)
+- **Process Manager**: PM2
+- **Web Server**: Caddy (reverse proxy)
+
+---
+
+## 📄 Licencia
+
+Privado - Todos los derechos reservados

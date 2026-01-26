@@ -1,0 +1,20 @@
+# Configuración de Caddy para Numerology API
+# Reemplazar "api-numerology.tudominio.com" con tu dominio real
+
+api-numerology.tudominio.com {
+    reverse_proxy localhost:3001
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    log {
+        output file /var/log/caddy/numerology-api.log {
+            roll_size 10MB
+            roll_keep 5
+        }
+    }
+}

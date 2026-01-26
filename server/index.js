@@ -29,9 +29,9 @@ app.use(helmet());
 // CORS middleware - must come before routes
 app.use(corsMiddleware);
 
-// Body parser middleware with size limit
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+// Body parser middleware with size limit (increased for chat history)
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Rate limiter - protect against abuse
 app.use(rateLimiter);
@@ -41,7 +41,22 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime(),
+    port: PORT
+  });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Numerology API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      interpret: '/api/numerology/interpret',
+      chat: '/api/numerology/chat'
+    }
   });
 });
 

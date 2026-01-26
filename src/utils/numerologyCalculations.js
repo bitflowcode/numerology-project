@@ -223,53 +223,112 @@ export const calculatePersonalYear = (birthDate) => {
 };
 
 /**
- * Calcula la compatibilidad entre dos números numerológicos
+ * Matriz de compatibilidad numerológica (1-10)
+ * Basada en numerología pitagórica tradicional
+ */
+const compatibilityMatrix = {
+  // Número 1
+  '1-1': 7, '1-2': 8, '1-3': 6, '1-4': 5, '1-5': 9,
+  '1-6': 7, '1-7': 6, '1-8': 8, '1-9': 7, '1-11': 8,
+  '1-22': 6, '1-33': 7,
+
+  // Número 2
+  '2-2': 9, '2-3': 7, '2-4': 8, '2-5': 6, '2-6': 9,
+  '2-7': 7, '2-8': 8, '2-9': 8, '2-11': 10, '2-22': 7,
+  '2-33': 8,
+
+  // Número 3
+  '3-3': 8, '3-4': 5, '3-5': 9, '3-6': 8, '3-7': 6,
+  '3-8': 7, '3-9': 9, '3-11': 8, '3-22': 6, '3-33': 9,
+
+  // Número 4
+  '4-4': 7, '4-5': 5, '4-6': 8, '4-7': 7, '4-8': 9,
+  '4-9': 6, '4-11': 7, '4-22': 9, '4-33': 7,
+
+  // Número 5
+  '5-5': 8, '5-6': 6, '5-7': 8, '5-8': 7, '5-9': 8,
+  '5-11': 7, '5-22': 6, '5-33': 8,
+
+  // Número 6
+  '6-6': 9, '6-7': 7, '6-8': 8, '6-9': 9, '6-11': 8,
+  '6-22': 7, '6-33': 10,
+
+  // Número 7
+  '7-7': 8, '7-8': 6, '7-9': 8, '7-11': 9, '7-22': 8,
+  '7-33': 8,
+
+  // Número 8
+  '8-8': 9, '8-9': 7, '8-11': 7, '8-22': 9, '8-33': 7,
+
+  // Número 9
+  '9-9': 8, '9-11': 8, '9-22': 7, '9-33': 9,
+
+  // Números Maestros entre sí
+  '11-11': 10, '11-22': 9, '11-33': 9,
+  '22-22': 9, '22-33': 8,
+  '33-33': 10
+};
+
+/**
+ * Calcula la compatibilidad entre dos números
  * @param {number} numero1 - Primer número (1-9, 11, 22, 33)
  * @param {number} numero2 - Segundo número (1-9, 11, 22, 33)
- * @returns {Object} { compatibilidad, nivel, descripcion }
- * @example
- * calculateCompatibility(3, 6)
- * // => { compatibilidad: 9, nivel: "Excelente", descripcion: "..." }
+ * @returns {number} Puntuación de compatibilidad (1-10)
  */
 export const calculateCompatibility = (numero1, numero2) => {
-  if (!numero1 || !numero2) return null;
+  const key = `${Math.min(numero1, numero2)}-${Math.max(numero1, numero2)}`;
+  return compatibilityMatrix[key] || 5; // Default 5 si no existe
+};
 
-  // Matriz de compatibilidad basada en principios numerológicos
-  const compatibilityMatrix = {
-    1: { 1: 7, 2: 6, 3: 9, 4: 5, 5: 8, 6: 6, 7: 7, 8: 8, 9: 7, 11: 8, 22: 7, 33: 6 },
-    2: { 1: 6, 2: 8, 3: 7, 4: 9, 5: 6, 6: 10, 7: 7, 8: 9, 9: 8, 11: 9, 22: 8, 33: 10 },
-    3: { 1: 9, 2: 7, 3: 8, 4: 6, 5: 10, 6: 9, 7: 8, 8: 7, 9: 9, 11: 9, 22: 8, 33: 9 },
-    4: { 1: 5, 2: 9, 3: 6, 4: 7, 5: 5, 6: 8, 7: 9, 8: 10, 9: 6, 11: 7, 22: 10, 33: 8 },
-    5: { 1: 8, 2: 6, 3: 10, 4: 5, 5: 7, 6: 6, 7: 9, 8: 6, 9: 8, 11: 8, 22: 7, 33: 7 },
-    6: { 1: 6, 2: 10, 3: 9, 4: 8, 5: 6, 6: 9, 7: 7, 8: 8, 9: 10, 11: 9, 22: 8, 33: 10 },
-    7: { 1: 7, 2: 7, 3: 8, 4: 9, 5: 9, 6: 7, 7: 8, 8: 7, 9: 9, 11: 10, 22: 9, 33: 8 },
-    8: { 1: 8, 2: 9, 3: 7, 4: 10, 5: 6, 6: 8, 7: 7, 8: 9, 9: 7, 11: 8, 22: 10, 33: 8 },
-    9: { 1: 7, 2: 8, 3: 9, 4: 6, 5: 8, 6: 10, 7: 9, 8: 7, 9: 8, 11: 9, 22: 8, 33: 10 },
-    11: { 1: 8, 2: 9, 3: 9, 4: 7, 5: 8, 6: 9, 7: 10, 8: 8, 9: 9, 11: 10, 22: 9, 33: 10 },
-    22: { 1: 7, 2: 8, 3: 8, 4: 10, 5: 7, 6: 8, 7: 9, 8: 10, 9: 8, 11: 9, 22: 9, 33: 9 },
-    33: { 1: 6, 2: 10, 3: 9, 4: 8, 5: 7, 6: 10, 7: 8, 8: 8, 9: 10, 11: 10, 22: 9, 33: 10 }
+/**
+ * Calcula compatibilidad completa entre dos personas
+ * @param {Object} persona1 - { nombre, fechaNacimiento }
+ * @param {Object} persona2 - { nombre, fechaNacimiento }
+ * @returns {Object} Objeto con toda la información de compatibilidad
+ */
+export const calculateFullCompatibility = (persona1, persona2) => {
+  // Calcular números de ambas personas
+  const vida1 = calculateLifePath(persona1.fechaNacimiento);
+  const alma1 = calculateSoulUrge(persona1.nombre);
+  const expresion1 = calculateExpression(persona1.nombre);
+
+  const vida2 = calculateLifePath(persona2.fechaNacimiento);
+  const alma2 = calculateSoulUrge(persona2.nombre);
+  const expresion2 = calculateExpression(persona2.nombre);
+
+  // Calcular compatibilidades individuales
+  const compatibilidadVida = calculateCompatibility(vida1.numero, vida2.numero);
+  const compatibilidadAlma = calculateCompatibility(alma1.numero, alma2.numero);
+  const compatibilidadExpresion = calculateCompatibility(expresion1.numero, expresion2.numero);
+
+  // Compatibilidad promedio ponderada
+  // Vida 40%, Alma 35%, Expresión 25%
+  const compatibilidadGeneral = Math.round(
+    (compatibilidadVida * 0.4) +
+    (compatibilidadAlma * 0.35) +
+    (compatibilidadExpresion * 0.25)
+  );
+
+  return {
+    compatibilidadGeneral,
+    persona1: {
+      nombre: persona1.nombre,
+      vida: vida1.numero,
+      alma: alma1.numero,
+      expresion: expresion1.numero
+    },
+    persona2: {
+      nombre: persona2.nombre,
+      vida: vida2.numero,
+      alma: alma2.numero,
+      expresion: expresion2.numero
+    },
+    detalles: {
+      vida: compatibilidadVida,
+      alma: compatibilidadAlma,
+      expresion: compatibilidadExpresion
+    }
   };
-
-  const compatibilidad = compatibilityMatrix[numero1]?.[numero2] || 5;
-
-  let nivel;
-  let descripcion;
-
-  if (compatibilidad >= 9) {
-    nivel = 'Excelente';
-    descripcion = 'Estos números se complementan perfectamente. Tienen una conexión natural y armoniosa que facilita la comprensión mutua y el crecimiento conjunto.';
-  } else if (compatibilidad >= 7) {
-    nivel = 'Alta';
-    descripcion = 'Estos números tienen muy buena compatibilidad. Comparten valores y objetivos similares, lo que favorece una relación equilibrada y satisfactoria.';
-  } else if (compatibilidad >= 4) {
-    nivel = 'Media';
-    descripcion = 'Estos números tienen compatibilidad moderada. Pueden funcionar bien juntos con esfuerzo y comprensión mutua, aunque pueden surgir algunos desafíos.';
-  } else {
-    nivel = 'Baja';
-    descripcion = 'Estos números tienen diferencias significativas en su naturaleza. Se requiere trabajo consciente y compromiso para crear armonía en la relación.';
-  }
-
-  return { compatibilidad, nivel, descripcion };
 };
 
 /**

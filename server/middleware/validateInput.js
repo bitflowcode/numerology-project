@@ -106,6 +106,70 @@ export function validateInterpretRequest(req, res, next) {
     sanitizedDatos.numero2 = Number(datos.numero2);
   }
 
+  // Validación especial para compatibilidad
+  if (tipo === 'compatibilidad') {
+    // Validar que existan datos de ambas personas
+    const requiredFields = ['nombre1', 'nombre2', 'fecha1', 'fecha2',
+                            'vida1', 'vida2', 'alma1', 'alma2',
+                            'expresion1', 'expresion2',
+                            'compatibilidadVida', 'compatibilidadAlma', 'compatibilidadExpresion'];
+
+    for (const field of requiredFields) {
+      if (!datos[field]) {
+        return res.status(400).json({
+          error: `Campo requerido faltante para compatibilidad: ${field}`
+        });
+      }
+    }
+
+    // Sanitizar nombres
+    sanitizedDatos.nombre1 = sanitizeString(datos.nombre1, 100);
+    sanitizedDatos.nombre2 = sanitizeString(datos.nombre2, 100);
+
+    // Validar fechas
+    if (!isValidDate(datos.fecha1) || !isValidDate(datos.fecha2)) {
+      return res.status(400).json({
+        error: 'Fechas de nacimiento inválidas.'
+      });
+    }
+    sanitizedDatos.fecha1 = datos.fecha1;
+    sanitizedDatos.fecha2 = datos.fecha2;
+
+    // Validar números (1-9, 11, 22, 33)
+    const numeros = [datos.vida1, datos.vida2, datos.alma1, datos.alma2,
+                     datos.expresion1, datos.expresion2];
+    for (const num of numeros) {
+      if (!VALID_NUMEROS.includes(Number(num))) {
+        return res.status(400).json({
+          error: 'Números de numerología inválidos.'
+        });
+      }
+    }
+
+    // Copiar números validados
+    sanitizedDatos.vida1 = Number(datos.vida1);
+    sanitizedDatos.vida2 = Number(datos.vida2);
+    sanitizedDatos.alma1 = Number(datos.alma1);
+    sanitizedDatos.alma2 = Number(datos.alma2);
+    sanitizedDatos.expresion1 = Number(datos.expresion1);
+    sanitizedDatos.expresion2 = Number(datos.expresion2);
+
+    // Validar puntuaciones de compatibilidad (1-10)
+    const compatibilidades = [datos.compatibilidadVida, datos.compatibilidadAlma, datos.compatibilidadExpresion];
+    for (const comp of compatibilidades) {
+      const compNum = Number(comp);
+      if (isNaN(compNum) || compNum < 1 || compNum > 10) {
+        return res.status(400).json({
+          error: 'Puntuaciones de compatibilidad deben estar entre 1 y 10.'
+        });
+      }
+    }
+
+    sanitizedDatos.compatibilidadVida = Number(datos.compatibilidadVida);
+    sanitizedDatos.compatibilidadAlma = Number(datos.compatibilidadAlma);
+    sanitizedDatos.compatibilidadExpresion = Number(datos.compatibilidadExpresion);
+  }
+
   // Update request with sanitized data
   req.body.datos = sanitizedDatos;
   req.body.numero = Number(numero);

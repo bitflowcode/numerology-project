@@ -5,12 +5,22 @@ import cors from 'cors';
  * Implements whitelist-based origin validation for security
  */
 
+// Parse FRONTEND_URL (puede tener múltiples URLs separadas por comas)
+const frontendUrls = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : [];
+
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
+  ...frontendUrls,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://192.168.1.174:5173'
 ];
+
+// Log allowed origins en desarrollo
+if (process.env.NODE_ENV !== 'production') {
+  console.log('📡 CORS allowed origins:', allowedOrigins);
+}
 
 const corsOptions = {
   origin: (origin, callback) => {

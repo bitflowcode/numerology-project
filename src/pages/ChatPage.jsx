@@ -294,7 +294,7 @@ const ChatPage = () => {
 
               {/* Message bubble */}
               <div className="flex-1 max-w-[85%] sm:max-w-[80%]">
-                <div className={`group relative px-4 py-3 rounded-2xl ${
+                <div className={`px-4 py-3 rounded-2xl ${
                   msg.role === 'user'
                     ? 'bg-gradient-to-br from-blue-100 to-blue-200'
                     : msg.isError
@@ -310,30 +310,38 @@ const ChatPage = () => {
                     }}
                   />
 
-                  {/* Copy button for assistant messages */}
-                  {msg.role === 'assistant' && !msg.isError && (
-                    <button
-                      onClick={() => handleCopyMessage(msg.content, index)}
-                      className="absolute top-2 right-2 p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors opacity-0 group-hover:opacity-100"
-                      title="Copiar respuesta"
-                    >
-                      {copiedIndex === index ? (
-                        <Check className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <Copy className="w-4 h-4 text-gray-600" />
-                      )}
-                    </button>
-                  )}
-
                   {/* Typing indicator */}
                   {typingMessageIndex === index && (
                     <span className="inline-block w-1 h-4 bg-purple-500 animate-pulse ml-1"></span>
                   )}
                 </div>
 
-                {/* Timestamp */}
-                <div className={`text-xs text-gray-500 mt-1 px-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                  {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                {/* Copy button and timestamp - always visible */}
+                <div className={`flex items-center justify-between mt-1 px-1 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div className="text-xs text-gray-500">
+                    {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+
+                  {/* Copy button for assistant messages */}
+                  {msg.role === 'assistant' && !msg.isError && (
+                    <button
+                      onClick={() => handleCopyMessage(msg.content, index)}
+                      className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600"
+                      title="Copiar respuesta"
+                    >
+                      {copiedIndex === index ? (
+                        <>
+                          <Check className="w-3 h-3 text-green-600" />
+                          <span className="text-green-600 font-medium">¡Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          <span>Copiar</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

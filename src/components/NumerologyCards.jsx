@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Heart, User, Target, Users, Calendar, Star, MessageCircle } from 'lucide-react';
+import { Sparkles, Heart, User, Target, Users, Calendar, Star, MessageCircle, Copy, Check } from 'lucide-react';
 import {
   calculateLifePath,
   calculateExpression,
@@ -8,6 +8,7 @@ import {
   calculatePersonality,
   calculatePersonalYear,
   detectMasterNumbers,
+  calculateFullCompatibility,
   lifePathMeanings
 } from '../utils/numerologyCalculations';
 import { getInterpretation } from '../services/numerologyApi';
@@ -23,6 +24,13 @@ const NumerologyCards = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Estados adicionales para compatibilidad
+  const [person1Name, setPerson1Name] = useState('');
+  const [person1Date, setPerson1Date] = useState(today);
+  const [person2Name, setPerson2Name] = useState('');
+  const [person2Date, setPerson2Date] = useState(today);
+  const [copiedResult, setCopiedResult] = useState(false);
+
   const handleCardSelect = (card) => {
     // If chat card, navigate to dedicated page
     if (card.id === 'chat') {
@@ -35,8 +43,26 @@ const NumerologyCards = () => {
     const today = new Date().toISOString().split('T')[0];
     setBirthDate(today);
     setFullName('');
+    setPerson1Name('');
+    setPerson1Date(today);
+    setPerson2Name('');
+    setPerson2Date(today);
     setResult(null);
     setError('');
+    setCopiedResult(false);
+  };
+
+  // Copy result to clipboard
+  const handleCopyResult = async (content) => {
+    try {
+      // Remove HTML tags for plain text copy
+      const plainText = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+      await navigator.clipboard.writeText(plainText);
+      setCopiedResult(true);
+      setTimeout(() => setCopiedResult(false), 2000);
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+    }
   };
 
   const cards = [
@@ -236,6 +262,27 @@ const NumerologyCards = () => {
         }
       }
 
+      if (selectedCard.id === 'compatibilidad') {
+        if (!person1Name || person1Name.trim().length < 2 ||
+            !person2Name || person2Name.trim().length < 2) {
+          setError('Por favor ingresa ambos nombres completos (mínimo 2 caracteres cada uno)');
+          setIsLoading(false);
+          return;
+        }
+        if (!person1Date || !person2Date) {
+          setError('Por favor ingresa ambas fechas de nacimiento');
+          setIsLoading(false);
+          return;
+        }
+        // Validar que no sean fechas futuras
+        const today = new Date();
+        if (new Date(person1Date) > today || new Date(person2Date) > today) {
+          setError('Las fechas de nacimiento no pueden estar en el futuro');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // 3. Cálculo local del número (mantener funciones existentes)
       let calculatedResult;
 
@@ -271,9 +318,12 @@ const NumerologyCards = () => {
           break;
 
         case 'compatibilidad':
-          setError('Funcionalidad de compatibilidad en desarrollo');
-          setIsLoading(false);
-          return;
+          calculatedResult = calculateFullCompatibility(
+            { nombre: person1Name, fechaNacimiento: person1Date },
+            { nombre: person2Name, fechaNacimiento: person2Date }
+          );
+          console.log('✅ Compatibilidad calculada:', calculatedResult);
+          break;
 
         default:
           setError('Tipo de cálculo no reconocido');
@@ -281,7 +331,55 @@ const NumerologyCards = () => {
           return;
       }
 
-      // 4. Si es números maestros (array), manejar diferente
+      // 4. Si es compatibilidad, preparar datos especiales
+      if (selectedCard.id === 'compatibilidad') {
+        const { compatibilidadGeneral, persona1, persona2, detalles } = calculatedResult;
+
+        console.log('📡 Llamando a API de compatibilidad con:', {
+          tipo: 'compatibilidad',
+          numero: compatibilidadGeneral,
+          persona1,
+          persona2,
+          detalles
+        });
+
+        const apiResponse = await getInterpretation(
+          'compatibilidad',
+          {
+            nombre1: persona1.nombre,
+            nombre2: persona2.nombre,
+            fecha1: person1Date,
+            fecha2: person2Date,
+            vida1: persona1.vida,
+            vida2: persona2.vida,
+            alma1: persona1.alma,
+            alma2: persona2.alma,
+            expresion1: persona1.expresion,
+            expresion2: persona2.expresion,
+            compatibilidadVida: detalles.vida,
+            compatibilidadAlma: detalles.alma,
+            compatibilidadExpresion: detalles.expresion
+          },
+          compatibilidadGeneral,
+          false
+        );
+
+        console.log('✅ Respuesta de API:', apiResponse);
+
+        setResult({
+          tipo: 'compatibilidad',
+          compatibilidad: compatibilidadGeneral,
+          persona1,
+          persona2,
+          detalles,
+          interpretation: apiResponse.interpretation
+        });
+
+        setIsLoading(false);
+        return; // Salir después de manejar compatibilidad
+      }
+
+      // 5. Si es números maestros (array), manejar diferente
       if (selectedCard.id === 'maestros') {
         setResult(calculatedResult); // Array de maestros
         setIsLoading(false);
@@ -454,6 +552,10 @@ const NumerologyCards = () => {
             const today = new Date().toISOString().split('T')[0];
             setBirthDate(today);
             setFullName('');
+            setPerson1Name('');
+            setPerson1Date(today);
+            setPerson2Name('');
+            setPerson2Date(today);
             setResult(null);
             setError('');
           }}
@@ -480,6 +582,10 @@ const NumerologyCards = () => {
                   const today = new Date().toISOString().split('T')[0];
                   setBirthDate(today);
                   setFullName('');
+                  setPerson1Name('');
+                  setPerson1Date(today);
+                  setPerson2Name('');
+                  setPerson2Date(today);
                   setResult(null);
                   setError('');
                 }}
@@ -524,6 +630,81 @@ const NumerologyCards = () => {
                       onChange={(e) => setFullName(e.target.value)}
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     />
+                  </div>
+                </>
+              ) : selectedCard.id === 'compatibilidad' ? (
+                <>
+                  {/* Persona 1 */}
+                  <div className="bg-purple-50/50 p-4 rounded-xl border-2 border-purple-200 mb-4">
+                    <h3 className="text-lg font-bold text-purple-700 mb-3 flex items-center gap-2">
+                      <span>👤</span> Persona 1
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <span>✍️</span> Nombre completo
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ej: María García"
+                          value={person1Name}
+                          onChange={(e) => setPerson1Name(e.target.value)}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <span>📅</span> Fecha de nacimiento
+                        </label>
+                        <input
+                          type="date"
+                          value={person1Date}
+                          onChange={(e) => setPerson1Date(e.target.value)}
+                          className="w-full px-3 sm:px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm sm:text-base"
+                          style={{ boxSizing: 'border-box', maxWidth: '100%', minWidth: 0 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Separador con corazón */}
+                  <div className="flex items-center justify-center my-4">
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-pink-300 to-transparent"></div>
+                    <span className="text-3xl mx-4">💕</span>
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-pink-300 to-transparent"></div>
+                  </div>
+
+                  {/* Persona 2 */}
+                  <div className="bg-green-50/50 p-4 rounded-xl border-2 border-green-200">
+                    <h3 className="text-lg font-bold text-green-700 mb-3 flex items-center gap-2">
+                      <span>👤</span> Persona 2
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <span>✍️</span> Nombre completo
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ej: Juan Pérez"
+                          value={person2Name}
+                          onChange={(e) => setPerson2Name(e.target.value)}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <span>📅</span> Fecha de nacimiento
+                        </label>
+                        <input
+                          type="date"
+                          value={person2Date}
+                          onChange={(e) => setPerson2Date(e.target.value)}
+                          className="w-full px-3 sm:px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-sm sm:text-base"
+                          style={{ boxSizing: 'border-box', maxWidth: '100%', minWidth: 0 }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </>
               ) : selectedCard.id === 'vida' || selectedCard.id === 'año' ? (
@@ -595,8 +776,162 @@ const NumerologyCards = () => {
               </div>
             )}
 
+            {/* Resultado de Compatibilidad */}
+            {result && result.tipo === 'compatibilidad' && (
+              <div className="mt-6 p-6 bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl border-2 border-pink-200">
+                {/* Puntuación Grande */}
+                <div className="text-center mb-6">
+                  <div className={`inline-flex items-center justify-center w-32 h-32 rounded-full ${
+                    result.compatibilidad >= 8 ? 'bg-gradient-to-br from-green-400 to-green-600' :
+                    result.compatibilidad >= 6 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
+                    result.compatibilidad >= 4 ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
+                    'bg-gradient-to-br from-red-400 to-red-600'
+                  } shadow-2xl`}>
+                    <div className="text-center">
+                      <div className="text-5xl font-bold text-white">{result.compatibilidad}</div>
+                      <div className="text-sm font-semibold text-white/90">/10</div>
+                    </div>
+                  </div>
+
+                  {/* Nivel de Compatibilidad */}
+                  <div className="mt-4">
+                    <div className={`inline-block px-6 py-2 rounded-full font-bold text-lg ${
+                      result.compatibilidad >= 8 ? 'bg-green-100 text-green-800' :
+                      result.compatibilidad >= 6 ? 'bg-yellow-100 text-yellow-800' :
+                      result.compatibilidad >= 4 ? 'bg-orange-100 text-orange-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {result.compatibilidad >= 8 ? '💚 Excelente' :
+                       result.compatibilidad >= 6 ? '💛 Buena' :
+                       result.compatibilidad >= 4 ? '🧡 Moderada' :
+                       '❤️ Desafiante'}
+                    </div>
+                  </div>
+
+                  {/* Gráfico de Corazones */}
+                  <div className="flex justify-center gap-2 mt-4 text-3xl">
+                    {[...Array(10)].map((_, i) => (
+                      <span key={i} className={i < result.compatibilidad ? 'opacity-100' : 'opacity-20'}>
+                        {i < result.compatibilidad ? '💖' : '🤍'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Desglose de Números */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  {/* Persona 1 */}
+                  <div className="bg-white/70 p-4 rounded-xl">
+                    <h4 className="font-bold text-purple-700 mb-2">{result.persona1.nombre}</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Vida:</span>
+                        <span className="font-bold">{result.persona1.vida}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Alma:</span>
+                        <span className="font-bold">{result.persona1.alma}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Expresión:</span>
+                        <span className="font-bold">{result.persona1.expresion}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Persona 2 */}
+                  <div className="bg-white/70 p-4 rounded-xl">
+                    <h4 className="font-bold text-green-700 mb-2">{result.persona2.nombre}</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Vida:</span>
+                        <span className="font-bold">{result.persona2.vida}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Alma:</span>
+                        <span className="font-bold">{result.persona2.alma}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Expresión:</span>
+                        <span className="font-bold">{result.persona2.expresion}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Compatibilidad por Aspecto */}
+                <div className="bg-white/70 p-4 rounded-xl mb-6">
+                  <h4 className="font-bold text-gray-800 mb-3">Compatibilidad por Aspecto</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Camino de Vida:</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full"
+                            style={{ width: `${result.detalles.vida * 10}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-bold w-8">{result.detalles.vida}/10</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Conexión del Alma:</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-rose-500 to-red-500 h-2 rounded-full"
+                            style={{ width: `${result.detalles.alma * 10}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-bold w-8">{result.detalles.alma}/10</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Expresión:</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full"
+                            style={{ width: `${result.detalles.expresion * 10}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-bold w-8">{result.detalles.expresion}/10</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Interpretación de Claude */}
+                <div
+                  className="prose prose-sm max-w-none text-gray-700"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(result.interpretation) }}
+                />
+
+                {/* Botón de copiar */}
+                <div className="flex justify-center mt-4">
+                  <button
+                    onClick={() => handleCopyResult(result.interpretation)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-gray-700 font-medium"
+                  >
+                    {copiedResult ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-600" />
+                        <span className="text-green-600">¡Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copiar resultado</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Resultados */}
-            {result && selectedCard.id !== 'maestros' && (
+            {result && selectedCard.id !== 'maestros' && result.tipo !== 'compatibilidad' && (
               <div className="mt-6 p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border-2 border-purple-100 animate-fadeIn">
                 {/* Número grande centrado */}
                 <div className="text-center mb-4">
@@ -633,6 +968,26 @@ const NumerologyCards = () => {
                     Generado por Claude • {result.metadata.usage?.output_tokens || 0} tokens
                   </div>
                 )}
+
+                {/* Botón de copiar */}
+                <div className="flex justify-center mt-4">
+                  <button
+                    onClick={() => handleCopyResult(result.descripcion)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-gray-700 font-medium"
+                  >
+                    {copiedResult ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-600" />
+                        <span className="text-green-600">¡Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copiar resultado</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -668,6 +1023,33 @@ const NumerologyCards = () => {
                     <p className="text-gray-600">
                       No se encontraron números maestros en tu perfil numerológico.
                     </p>
+                  </div>
+                )}
+
+                {/* Botón de copiar para números maestros */}
+                {result.length > 0 && (
+                  <div className="flex justify-center mt-4">
+                    <button
+                      onClick={() => {
+                        const text = result.map(item =>
+                          `${item.tipo}: ${item.numero}${lifePathMeanings[item.numero] ? ` - ${lifePathMeanings[item.numero].title} - ${lifePathMeanings[item.numero].description}` : ''}`
+                        ).join('\n\n');
+                        handleCopyResult(text);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-gray-700 font-medium"
+                    >
+                      {copiedResult ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-600" />
+                          <span className="text-green-600">¡Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>Copiar resultado</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 )}
               </div>
