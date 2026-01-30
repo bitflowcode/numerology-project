@@ -433,7 +433,13 @@ const NumerologyCards = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-100 via-white to-purple-50 overflow-x-hidden">
       {/* Header mejorado con personaje zen */}
-      <div className="relative bg-gradient-to-br from-purple-400 via-purple-300 to-pink-300 pt-16 pb-32 px-6 overflow-hidden">
+      <div
+        className="relative bg-gradient-to-br from-purple-400 via-purple-300 to-pink-300 pb-32 px-6 overflow-hidden"
+        style={{
+          paddingTop: 'calc(4rem + env(safe-area-inset-top))',
+          marginTop: 'calc(-1 * env(safe-area-inset-top))'
+        }}
+      >
         {/* Elementos decorativos de fondo */}
         <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
         <div className="absolute bottom-20 right-10 w-40 h-40 bg-pink-300/20 rounded-full blur-3xl"></div>
