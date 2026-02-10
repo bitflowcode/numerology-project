@@ -383,9 +383,48 @@ const NumerologyCards = () => {
         return; // Salir después de manejar compatibilidad
       }
 
-      // 5. Si es números maestros (array), manejar diferente
+      // 5. Si es números maestros (array), manejar con interpretación de Claude
       if (selectedCard.id === 'maestros') {
-        setResult(calculatedResult); // Array de maestros
+        if (calculatedResult.length === 0) {
+          // No hay números maestros, solo mostrar mensaje sin llamar a API
+          setResult(calculatedResult);
+          setIsLoading(false);
+          return;
+        }
+
+        // Hay números maestros, obtener interpretación de Claude
+        console.log('📡 Llamando a API para números maestros:', calculatedResult);
+
+        // Preparar datos para la API
+        const maestrosInfo = calculatedResult.map(m => `${m.tipo}: ${m.numero}`).join(', ');
+        const primerMaestro = calculatedResult[0].numero; // Usar el primer maestro como referencia
+
+        try {
+          const apiResponse = await getInterpretation(
+            'maestros',
+            {
+              nombre: fullName,
+              fechaNacimiento: birthDate,
+              detalles: `Números maestros encontrados: ${maestrosInfo}`
+            },
+            primerMaestro,
+            true
+          );
+
+          console.log('✅ Respuesta de API para maestros:', apiResponse);
+
+          setResult({
+            tipo: 'maestros',
+            maestros: calculatedResult, // Array de maestros
+            interpretation: apiResponse.interpretation,
+            metadata: apiResponse.metadata
+          });
+        } catch (error) {
+          console.error('❌ Error al obtener interpretación de maestros:', error);
+          // Si falla la API, mostrar sin interpretación
+          setResult(calculatedResult);
+        }
+
         setIsLoading(false);
         return;
       }
@@ -1013,7 +1052,72 @@ const NumerologyCards = () => {
             {/* Resultados para números maestros (array) */}
             {result && selectedCard.id === 'maestros' && (
               <div className="mt-6 animate-fadeIn">
-                {result.length > 0 ? (
+                {/* Caso 1: Resultado con interpretación de Claude (nuevo formato) */}
+                {result.tipo === 'maestros' && result.maestros ? (
+                  <div className="space-y-6">
+                    {/* Lista de números maestros encontrados */}
+                    <div className="space-y-3">
+                      <h3 className="text-xl font-bold text-gray-800 text-center mb-4">
+                        ✨ Números Maestros Encontrados
+                      </h3>
+                      {result.maestros.map((item, index) => (
+                        <div
+                          key={index}
+                          className="p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl border-2 border-yellow-200"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-700">{item.tipo}</span>
+                            <span className={`text-4xl font-bold bg-gradient-to-r ${selectedCard.color} bg-clip-text text-transparent`}>
+                              {item.numero}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Interpretación de Claude */}
+                    {result.interpretation && (
+                      <div className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border-2 border-purple-100">
+                        <div
+                          className="prose prose-sm max-w-none text-gray-700"
+                          dangerouslySetInnerHTML={{ __html: renderMarkdown(result.interpretation) }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Metadata de Claude */}
+                    {result.metadata && (
+                      <div className="text-xs text-gray-500 text-center">
+                        Generado por Claude • {result.metadata.usage?.output_tokens || 0} tokens
+                      </div>
+                    )}
+
+                    {/* Botón de copiar */}
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => {
+                          const maestrosText = result.maestros.map(m => `${m.tipo}: ${m.numero}`).join('\n');
+                          const fullText = `${maestrosText}\n\n${result.interpretation || ''}`;
+                          handleCopyResult(fullText);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-gray-700 font-medium"
+                      >
+                        {copiedResult ? (
+                          <>
+                            <Check className="w-4 h-4 text-green-600" />
+                            <span className="text-green-600">¡Copiado!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4" />
+                            <span>Copiar resultado</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : result.length > 0 ? (
+                  /* Caso 2: Formato antiguo (array directo) - fallback por si falla la API */
                   <div className="space-y-3">
                     <h3 className="text-xl font-bold text-gray-800 text-center mb-4">
                       ✨ Números Maestros Encontrados
@@ -1036,39 +1140,37 @@ const NumerologyCards = () => {
                         )}
                       </div>
                     ))}
+                    {/* Botón de copiar para formato antiguo */}
+                    <div className="flex justify-center mt-4">
+                      <button
+                        onClick={() => {
+                          const text = result.map(item =>
+                            `${item.tipo}: ${item.numero}${lifePathMeanings[item.numero] ? ` - ${lifePathMeanings[item.numero].title} - ${lifePathMeanings[item.numero].description}` : ''}`
+                          ).join('\n\n');
+                          handleCopyResult(text);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-gray-700 font-medium"
+                      >
+                        {copiedResult ? (
+                          <>
+                            <Check className="w-4 h-4 text-green-600" />
+                            <span className="text-green-600">¡Copiado!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4" />
+                            <span>Copiar resultado</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 ) : (
+                  /* Caso 3: No hay números maestros */
                   <div className="p-6 bg-gray-50 rounded-xl text-center">
                     <p className="text-gray-600">
                       No se encontraron números maestros en tu perfil numerológico.
                     </p>
-                  </div>
-                )}
-
-                {/* Botón de copiar para números maestros */}
-                {result.length > 0 && (
-                  <div className="flex justify-center mt-4">
-                    <button
-                      onClick={() => {
-                        const text = result.map(item =>
-                          `${item.tipo}: ${item.numero}${lifePathMeanings[item.numero] ? ` - ${lifePathMeanings[item.numero].title} - ${lifePathMeanings[item.numero].description}` : ''}`
-                        ).join('\n\n');
-                        handleCopyResult(text);
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-gray-700 font-medium"
-                    >
-                      {copiedResult ? (
-                        <>
-                          <Check className="w-4 h-4 text-green-600" />
-                          <span className="text-green-600">¡Copiado!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          <span>Copiar resultado</span>
-                        </>
-                      )}
-                    </button>
                   </div>
                 )}
               </div>
