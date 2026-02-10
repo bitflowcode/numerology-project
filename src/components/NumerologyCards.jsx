@@ -12,6 +12,7 @@ import {
   lifePathMeanings
 } from '../utils/numerologyCalculations';
 import { getInterpretation } from '../services/numerologyApi';
+import zenni from '../assets/zenni.png';
 
 const NumerologyCards = () => {
   const navigate = useNavigate();
@@ -30,6 +31,9 @@ const NumerologyCards = () => {
   const [person2Name, setPerson2Name] = useState('');
   const [person2Date, setPerson2Date] = useState(today);
   const [copiedResult, setCopiedResult] = useState(false);
+
+  // Estado para controlar si la imagen zen cargó correctamente
+  const [zenImageError, setZenImageError] = useState(false);
 
   const handleCardSelect = (card) => {
     // If chat card, navigate to dedicated page
@@ -452,9 +456,18 @@ const NumerologyCards = () => {
               {/* Aura/Glow detrás del personaje */}
               <div className="absolute inset-0 bg-gradient-to-br from-yellow-200/40 to-purple-300/40 rounded-full blur-3xl scale-150"></div>
 
-              {/* Personaje (usaremos emoji hasta que se agregue imagen real) */}
-              <div className="relative text-8xl mb-4 drop-shadow-2xl">
-                🧘
+              {/* Personaje zen con imagen y fallback a emoji */}
+              <div className="relative mb-4 drop-shadow-2xl flex items-center justify-center">
+                {zenImageError ? (
+                  <div className="text-8xl">🧘</div>
+                ) : (
+                  <img
+                    src={zenni}
+                    alt="Zen Character"
+                    className="w-32 h-32 object-contain"
+                    onError={() => setZenImageError(true)}
+                  />
+                )}
               </div>
             </div>
           </div>
